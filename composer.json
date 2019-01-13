@@ -1,0 +1,24 @@
+{
+    "name": "yanhaoli/create-twill-app",
+    "authors": [
+        {
+            "name": "Yanhao Li",
+            "email": "hi@yanhaoli.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "CreateTwillApp\\": "src/"
+        }
+    },
+    "require": {
+        "symfony/console": "~3.0|~4.0",
+        "symfony/filesystem": "~3.0|~4.0",
+        "symfony/process": "~3.0|~4.0",
+        "laravel/installer": "~2.0",
+        "symfony/finder": "^4.2"
+    },
+    "bin": [
+        "create-twill-app"
+    ]
+}
