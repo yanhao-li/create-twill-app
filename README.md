@@ -11,7 +11,7 @@ composer global require yanhaoli/create-twill-app
 create-twill-app new blog
 ```
 
-once server started, use http://localhost:8080/admin to access Twill's admin UI.
+once server started, use http://localhost:8000/admin to access Twill's admin UI.
 
 ## Contributing
 
