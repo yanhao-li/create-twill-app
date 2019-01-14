@@ -1,5 +1,6 @@
 {
     "name": "yanhaoli/create-twill-app",
+    "description": "Install Twill application with one command",
     "authors": [
         {
             "name": "Yanhao Li",
