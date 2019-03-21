@@ -173,22 +173,13 @@ class NewCommand extends LaravelNewCommand
         $packagejson = iterator_to_array($finder->files()->ignoreDotFiles(false)->in($this->directory)->name("package.json"));
         $packagejsonContent = json_decode(reset($packagejson)->getContents(), true);
         $twillScripts = [
-            "twill-build" => "npm run twill-copy-blocks && cd vendor/area17/twill && npm ci && npm run prod && cp -R public/* \${INIT_CWD}/public",
-            "twill-copy-blocks" => "npm run twill-clean-blocks && mkdir -p resources/assets/js/blocks/ && mkdir -p vendor/area17/twill/frontend/js/components/blocks/customs/ && cp -R resources/assets/js/blocks/ vendor/area17/twill/frontend/js/components/blocks/customs",
-            "twill-clean-blocks" => "rm -rf vendor/area17/twill/frontend/js/components/blocks/customs/*"
+            "twill-build" => "rm -f public/hot && npm run twill-copy-blocks && cd vendor/area17/twill && npm ci && npm run prod && cp -R public/* ${INIT_CWD}/public",
+            "twill-copy-blocks" => "npm run twill-clean-blocks && mkdir -p resources/assets/js/blocks/ && cp -R resources/assets/js/blocks/ vendor/area17/twill/frontend/js/components/blocks/customs/",
+            "twill-clean-blocks" => "rm -rf vendor/area17/twill/frontend/js/components/blocks/customs"
         ];
         $packagejsonContent["scripts"] = array_merge($packagejsonContent["scripts"], $twillScripts);
         $filesystem = new Filesystem;
         $filesystem->dumpFile($this->directory . "/package.json", json_encode($packagejsonContent, JSON_PRETTY_PRINT));
-
-        //Build Twill's UI
-        $this->output->writeln("<info>Building Twill's UI assets...</info>");
-        $buildProcess = new Process("npm run twill-build", $this->directory, null, null, null);
-        $buildProcess->run(function ($type, $line){
-            $this->output->write($line);
-        });
-
-        //
     }
 
     protected function databaseConnectionValid($dbconfig)
