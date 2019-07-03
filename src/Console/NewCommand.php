@@ -94,6 +94,7 @@ class NewCommand extends LaravelNewCommand
     protected function configureDatabase()
     {
         $helper = $this->getHelper('question');
+        $connectionQuestion = new Question('Enter your database connection ["mysql"|"pgsql"]:  ', 'mysql');
         $hostQuestion = new Question('Enter your database host ["127.0.0.1"]:  ', '127.0.0.1');
         $usernameQuestion = new Question('Enter your database username ["homestead"]:  ', 'homestead');
         $passwordQuestion = new Question('Enter your database password [""]:  ', '');
@@ -107,6 +108,7 @@ class NewCommand extends LaravelNewCommand
             $password = $helper->ask($this->input, $this->output, $passwordQuestion);
             $database = $helper->ask($this->input, $this->output, $databaseQuestion);
             $databaseConfig = [
+                "connection" => $connectionQuestion,
                 "host" => $host,
                 "username" => $username,
                 "password" => $password,
@@ -122,12 +124,14 @@ class NewCommand extends LaravelNewCommand
 
     protected function configureEnv($dbconfig)
     {
+        $connection = $dbconfig["connection"];
         $host = $dbconfig["host"];
         $database = $dbconfig["database"];
         $username = $dbconfig["username"];
         $password = $dbconfig["password"];
 
         $searchDb = [
+            'DB_CONNECTION=mysql',
             'DB_HOST=127.0.0.1',
             'DB_DATABASE=homestead',
             'DB_USERNAME=homestead',
@@ -135,6 +139,7 @@ class NewCommand extends LaravelNewCommand
         ];
 
         $replaceDb = [
+            "DB_CONNECTION=$connection",
             "DB_HOST=$host",
             "DB_DATABASE=$database",
             "DB_USERNAME=$username",
@@ -185,7 +190,16 @@ class NewCommand extends LaravelNewCommand
     protected function databaseConnectionValid($dbconfig)
     {
         try {
-            $link = @mysqli_connect($dbconfig["host"], $dbconfig["username"], $dbconfig["password"], $dbconfig["database"]);
+            switch ($dbconfig["connection"]) {
+              case 'mysql':
+                $link = @mysqli_connect($dbconfig["host"], $dbconfig["username"], $dbconfig["password"], $dbconfig["database"]);
+                break;
+              case 'pgsql':
+                $link = @pg_connect("host=$dbconfig["host"] dbname=$dbconfig["database"] user=$dbconfig["username"] password=$dbconfig["password"]");
+              default:
+                $link = False;
+                break;
+            }
             if (!$link) {
                 return false;
             }
