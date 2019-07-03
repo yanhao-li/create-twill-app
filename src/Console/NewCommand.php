@@ -94,21 +94,22 @@ class NewCommand extends LaravelNewCommand
     protected function configureDatabase()
     {
         $helper = $this->getHelper('question');
-        $connectionQuestion = new Question('Enter your database connection ["mysql"|"pgsql"]:  ', 'mysql');
+        $connectionQuestion = new Question('Enter your database connection ["mysql" | "pgsql"]:  ', 'mysql');
         $hostQuestion = new Question('Enter your database host ["127.0.0.1"]:  ', '127.0.0.1');
-        $usernameQuestion = new Question('Enter your database username ["homestead"]:  ', 'homestead');
+        $usernameQuestion = new Question('Enter your database username ["root"]:  ', 'root');
         $passwordQuestion = new Question('Enter your database password [""]:  ', '');
         $passwordQuestion->setHidden(true);
-        $databaseQuestion = new Question('Enter your database name ["homestead"]:  ', 'homestead');
+        $databaseQuestion = new Question('Enter your database name ["laravel"]:  ', 'laravel');
         $connected = false;
         while (!$connected) {
             $this->output->writeln('<error>Cannot connect to database.</error>');
+            $connection = $helper->ask($this->input, $this->output, $connectionQuestion);
             $host = $helper->ask($this->input, $this->output, $hostQuestion);
             $username = $helper->ask($this->input, $this->output, $usernameQuestion);
             $password = $helper->ask($this->input, $this->output, $passwordQuestion);
             $database = $helper->ask($this->input, $this->output, $databaseQuestion);
             $databaseConfig = [
-                "connection" => $connectionQuestion,
+                "connection" => $connection,
                 "host" => $host,
                 "username" => $username,
                 "password" => $password,
@@ -129,13 +130,15 @@ class NewCommand extends LaravelNewCommand
         $database = $dbconfig["database"];
         $username = $dbconfig["username"];
         $password = $dbconfig["password"];
+        $port = $connection === 'mysql' ? 3306 : 5432;
 
         $searchDb = [
             'DB_CONNECTION=mysql',
             'DB_HOST=127.0.0.1',
-            'DB_DATABASE=homestead',
-            'DB_USERNAME=homestead',
-            'DB_PASSWORD=secret'
+            'DB_DATABASE=laravel',
+            'DB_USERNAME=root',
+            'DB_PASSWORD=',
+            'DB_PORT=3306'
         ];
 
         $replaceDb = [
@@ -143,7 +146,8 @@ class NewCommand extends LaravelNewCommand
             "DB_HOST=$host",
             "DB_DATABASE=$database",
             "DB_USERNAME=$username",
-            "DB_PASSWORD=$password"
+            "DB_PASSWORD=$password",
+            "DB_PORT=$port"
         ];
 
         $this->replaceEnv($searchDb, $replaceDb);
@@ -178,7 +182,7 @@ class NewCommand extends LaravelNewCommand
         $packagejson = iterator_to_array($finder->files()->ignoreDotFiles(false)->in($this->directory)->name("package.json"));
         $packagejsonContent = json_decode(reset($packagejson)->getContents(), true);
         $twillScripts = [
-            "twill-build" => "rm -f public/hot && npm run twill-copy-blocks && cd vendor/area17/twill && npm ci && npm run prod && cp -R public/* ${INIT_CWD}/public",
+            "twill-build" => "rm -f public/hot && npm run twill-copy-blocks && cd vendor/area17/twill && npm ci && npm run prod && cp -R public/* \${INIT_CWD}/public",
             "twill-copy-blocks" => "npm run twill-clean-blocks && mkdir -p resources/assets/js/blocks/ && cp -R resources/assets/js/blocks/ vendor/area17/twill/frontend/js/components/blocks/customs/",
             "twill-clean-blocks" => "rm -rf vendor/area17/twill/frontend/js/components/blocks/customs"
         ];
@@ -190,14 +194,20 @@ class NewCommand extends LaravelNewCommand
     protected function databaseConnectionValid($dbconfig)
     {
         try {
-            switch ($dbconfig["connection"]) {
+            $host = $dbconfig["host"];
+            $username = $dbconfig["username"];
+            $password = $dbconfig["password"];
+            $database = $dbconfig["database"];
+            $connection = $dbconfig["connection"];
+            switch ($connection) {
               case 'mysql':
-                $link = @mysqli_connect($dbconfig["host"], $dbconfig["username"], $dbconfig["password"], $dbconfig["database"]);
+                $link = @mysqli_connect($host, $username, $password, $database);
                 break;
               case 'pgsql':
-                $link = @pg_connect("host=$dbconfig["host"] dbname=$dbconfig["database"] user=$dbconfig["username"] password=$dbconfig["password"]");
+                $link = @pg_connect("host={$host} port=5432 dbname={$database} user={$username} password={$password}");
+                break;
               default:
-                $link = False;
+                $link = false;
                 break;
             }
             if (!$link) {
