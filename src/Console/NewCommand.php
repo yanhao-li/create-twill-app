@@ -278,14 +278,16 @@ class NewCommand extends Command
      * @param  string  $directory
      * @return $this
      */
-    protected function extract($zipFile, $directory)
+    protected function extract($zipFile)
     {
         $archive = new ZipArchive;
         $archive->open($zipFile);
-        $archive->extractTo($directory);
+        $archive->extractTo(getcwd());
+        rename(trim($archive->getNameIndex(0), '/'), $this->input->getArgument('name'));
         $archive->close();
         return $this;
     }
+
     /**
      * Clean-up the Zip file.
      *
