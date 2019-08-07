@@ -2,7 +2,8 @@
 
 namespace CreateTwillApp\Console;
 
-use Laravel\Installer\Console\NewCommand as LaravelNewCommand;
+use ZipArchive;
+use GuzzleHttp\Client;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -15,7 +16,7 @@ use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Console\Question\Question;
 
-class NewCommand extends LaravelNewCommand
+class NewCommand extends Command
 {
     private $input, $output, $directory;
 
@@ -45,10 +46,23 @@ class NewCommand extends LaravelNewCommand
     {
         $this->input = $input;
         $this->output = $output;
-        
+
+        $this->beforeRun();
+
+        $this->downloadZip($zipFile = $this->makeFilename())
+              ->extract($zipFile, $this->directory)
+              ->prepareWritableDirectories($this->directory, $this->output)
+              ->cleanUp($zipFile);
+    }
+
+    protected function beforeRun()
+    {
+        if (! extension_loaded('zip')) {
+            throw new RuntimeException('The Zip PHP extension is not installed. Please install it and try again.');
+        }
+
         if ($this->input->getArgument('name')) {
             $this->directory = getcwd().'/'.$this->input->getArgument('name');
-            $this->setup();
         } else {
             $this->output->writeln('<info>Usage: create-twill-app new app-name</info>');
             return;
@@ -57,7 +71,7 @@ class NewCommand extends LaravelNewCommand
 
     protected function setup()
     {
-        $this->output->writeln('<info>Installing Laravel...</info>');
+
         $laravelNewCommand = new LaravelNewCommand;
         
         //Install Laravel
@@ -217,5 +231,89 @@ class NewCommand extends LaravelNewCommand
         } catch (Exception $e) {
             return false;
         }
+    }
+
+        /**
+     * Generate a random temporary filename.
+     *
+     * @return string
+     */
+    protected function makeFilename()
+    {
+        return getcwd().'/twill_'.md5(time().uniqid()).'.zip';
+    }
+
+    /**
+     * Download the temporary Zip to the given file.
+     *
+     * @param  string  $zipFile
+     * @param  string  $version
+     * @return $this
+     */
+    protected function downloadZip($zipFile)
+    {
+        $response = (new Client)->get('https://github.com/yanhao-li/twill-app/archive/0.0.0.zip');
+        file_put_contents($zipFile, $response->getBody());
+        return $this;
+    }
+
+     /**
+     * Get the composer command for the environment.
+     *
+     * @return string
+     */
+    protected function findComposer()
+    {
+        $composerPath = getcwd().'/composer.phar';
+        if (file_exists($composerPath)) {
+            return '"'.PHP_BINARY.'" '.$composerPath;
+        }
+        return 'composer';
+    }
+
+        /**
+     * Extract the Zip file into the given directory.
+     *
+     * @param  string  $zipFile
+     * @param  string  $directory
+     * @return $this
+     */
+    protected function extract($zipFile, $directory)
+    {
+        $archive = new ZipArchive;
+        $archive->open($zipFile);
+        $archive->extractTo($directory);
+        $archive->close();
+        return $this;
+    }
+    /**
+     * Clean-up the Zip file.
+     *
+     * @param  string  $zipFile
+     * @return $this
+     */
+    protected function cleanUp($zipFile)
+    {
+        @chmod($zipFile, 0777);
+        @unlink($zipFile);
+        return $this;
+    }
+    /**
+     * Make sure the storage and bootstrap cache directories are writable.
+     *
+     * @param  string  $appDirectory
+     * @param  \Symfony\Component\Console\Output\OutputInterface  $output
+     * @return $this
+     */
+    protected function prepareWritableDirectories($appDirectory, OutputInterface $output)
+    {
+        $filesystem = new Filesystem;
+        try {
+            $filesystem->chmod($appDirectory.DIRECTORY_SEPARATOR.'bootstrap/cache', 0755, 0000, true);
+            $filesystem->chmod($appDirectory.DIRECTORY_SEPARATOR.'storage', 0755, 0000, true);
+        } catch (IOExceptionInterface $e) {
+            $output->writeln('<comment>You should verify that the "storage" and "bootstrap/cache" directories are writable.</comment>');
+        }
+        return $this;
     }
 }
