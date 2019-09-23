@@ -1,6 +1,7 @@
 {
     "name": "yanhaoli/create-twill-app",
     "description": "Create Twill application with no extra setup",
+    "license": "MIT",
     "authors": [
         {
             "name": "Yanhao Li",
