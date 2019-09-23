@@ -35,7 +35,7 @@ class NewCommand extends Command
             ->addOption('force', 'f', InputOption::VALUE_NONE, 'Forces install even if the directory already exists');
     }
 
-        /**
+    /**
      * Execute the command.
      *
      * @param  \Symfony\Component\Console\Input\InputInterface  $input
@@ -53,8 +53,33 @@ class NewCommand extends Command
               ->extract($zipFile, $this->directory)
               ->prepareWritableDirectories($this->directory, $this->output)
               ->cleanUp($zipFile);
+
+        $composer = $this->findComposer();
+
+        $commands = [
+            $composer.' install --no-scripts',
+            $composer.' run-script post-root-package-install',
+            $composer.' run-script post-create-project-cmd',
+            $composer.' run-script post-autoload-dump',
+        ];
+
+        $process = new Process(implode(' && ', $commands), $this->directory, null, null, null);
+
+        if ('\\' !== DIRECTORY_SEPARATOR && file_exists('/dev/tty') && is_readable('/dev/tty')) {
+            $process->setTty(true);
+        }
+        $process->run(function ($type, $line) use ($output) {
+            $output->write($line);
+        });
+        
+        $output->writeln('<comment>Application ready! Build something amazing.</comment>');
     }
 
+    /**
+     * Check the environment.
+     *
+     * @return void
+     */
     protected function beforeRun()
     {
         if (! extension_loaded('zip')) {
@@ -63,6 +88,7 @@ class NewCommand extends Command
 
         if ($this->input->getArgument('name')) {
             $this->directory = getcwd().'/'.$this->input->getArgument('name');
+            return;
         } else {
             $this->output->writeln('<info>Usage: create-twill-app new app-name</info>');
             return;
@@ -232,8 +258,8 @@ class NewCommand extends Command
             return false;
         }
     }
-
-        /**
+    
+    /**
      * Generate a random temporary filename.
      *
      * @return string
@@ -257,7 +283,7 @@ class NewCommand extends Command
         return $this;
     }
 
-     /**
+    /**
      * Get the composer command for the environment.
      *
      * @return string
