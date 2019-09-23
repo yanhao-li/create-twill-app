@@ -13,6 +13,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Finder\Finder;
 
@@ -20,7 +21,7 @@ class NewCommand extends Command
 {
     use Database;
 
-    private $input, $output, $directory, $database;
+    private $input, $output, $io, $directory, $database;
 
     /**
      * Configure the command options.
@@ -48,6 +49,7 @@ class NewCommand extends Command
     {
         $this->input = $input;
         $this->output = $output;
+        $this->io = new SymfonyStyle($input, $output);
 
         $this->beforeRun();
 
@@ -74,9 +76,16 @@ class NewCommand extends Command
             $output->write($line);
         });
 
-        $this->configureDatabase();
-
-        $output->writeln('<comment>Twill is ready!</comment>');
+        $databaseConfig = $this->configureDatabase();
+        $this->configureEnv($databaseConfig);
+        passthru('cd '. $this->directory . ' && php artisan migrate');
+        $output->writeln('<comment>Success! Twill is ready at ' . $this->directory . '</comment>');
+        $output->writeln('<comment>You could get start by typing: </comment>');
+        $this->io->newline();
+        $output->writeln('<info>  cd ' . $this->input->getArgument('name') .'</info>');
+        $output->writeln('<info>  php artisan serve</info>');
+        $this->io->newline();
+        $output->writeln('<comment>🔮 Welcome to Twill! 🔮</comment>');
     }
 
     /**
@@ -97,42 +106,6 @@ class NewCommand extends Command
             $this->output->writeln('<info>Usage: create-twill-app new app-name</info>');
             return;
         }
-    }
-
-    protected function setup()
-    {
-
-        $laravelNewCommand = new LaravelNewCommand;
-        
-        //Install Laravel
-        $laravelNewCommand->execute($this->input, $this->output);
-        $this->installTwill($laravelNewCommand->findComposer());
-    }
-
-    protected function installTwill($composer)
-    {
-
-        $this->output->writeln('<info>Installing Twill...</info>');
-        $commands = [
-            $composer.' require area17/twill:"1.2.*"',
-            $composer.' install --no-scripts'
-        ];
-        
-        $composerProcess = new Process(implode(' && ', $commands), $this->directory, null, null, null);
-        $composerProcess->run(function ($type, $line){
-            $this->output->write($line);
-        });
-
-        $databaseConfig = $this->configureDatabase();
-        $this->configureEnv($databaseConfig);
-        passthru('cd '. $this->directory . ' && php artisan twill:install' );
-        $this->configureNpm();
-        
-        //run the server
-        $serveProcess = new Process("php artisan serve", $this->directory, null, null, null);
-        $serveProcess->run(function ($type, $line){
-            $this->output->write($line);
-        });
     }
 
     protected function configureEnv($dbconfig)
@@ -222,7 +195,7 @@ class NewCommand extends Command
      */
     protected function downloadZip($zipFile)
     {
-        $response = (new Client)->get('https://github.com/yanhao-li/twill-app/archive/0.0.0.zip');
+        $response = (new Client)->get('https://github.com/yanhao-li/twill-app/archive/0.0.1.zip');
         file_put_contents($zipFile, $response->getBody());
         return $this;
     }

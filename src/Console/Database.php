@@ -3,18 +3,19 @@
 namespace CreateTwillApp\Console;
 
 use Symfony\Component\Console\Question\Question;
+use Symfony\Component\Console\Question\ChoiceQuestion;
 
 trait Database {
 
     public function configureDatabase()
     {
         $helper = $this->getHelper('question');
-        $connectionQuestion = new Question('Enter your database connection ["mysql" | "pgsql"]:  ', 'mysql');
-        $hostQuestion = new Question('Enter your database host ["127.0.0.1"]:  ', '127.0.0.1');
-        $usernameQuestion = new Question('Enter your database username ["root"]:  ', 'root');
-        $passwordQuestion = new Question('Enter your database password [""]:  ', '');
+        $connectionQuestion = new ChoiceQuestion('Enter your database connection, default "mysql": ', ['mysql', 'pgsql'],  0);
+        $hostQuestion = new Question('Enter your database host, default "127.0.0.1":  ', '127.0.0.1');
+        $usernameQuestion = new Question('Enter your database username, default "root":  ', 'root');
+        $passwordQuestion = new Question('Enter your database password, default "":  ', '');
         $passwordQuestion->setHidden(true);
-        $databaseQuestion = new Question('Enter your database name ["laravel"]:  ', 'laravel');
+        $databaseQuestion = new Question('Enter your database name, default "laravel":  ', 'laravel');
         $connected = false;
         while (!$connected) {
             $this->output->writeln('<error>Cannot connect to database.</error>');
