@@ -3,6 +3,7 @@
 namespace CreateTwillApp\Console;
 
 use ZipArchive;
+use CreateTwillApp\Console\Database;
 use GuzzleHttp\Client;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
@@ -14,11 +15,12 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 use Symfony\Component\Finder\Finder;
-use Symfony\Component\Console\Question\Question;
 
 class NewCommand extends Command
 {
-    private $input, $output, $directory;
+    use Database;
+
+    private $input, $output, $directory, $database;
 
     /**
      * Configure the command options.
@@ -71,8 +73,10 @@ class NewCommand extends Command
         $process->run(function ($type, $line) use ($output) {
             $output->write($line);
         });
-        
-        $output->writeln('<comment>Application ready! Build something amazing.</comment>');
+
+        $this->configureDatabase();
+
+        $output->writeln('<comment>Twill is ready!</comment>');
     }
 
     /**
@@ -129,38 +133,6 @@ class NewCommand extends Command
         $serveProcess->run(function ($type, $line){
             $this->output->write($line);
         });
-    }
-
-    protected function configureDatabase()
-    {
-        $helper = $this->getHelper('question');
-        $connectionQuestion = new Question('Enter your database connection ["mysql" | "pgsql"]:  ', 'mysql');
-        $hostQuestion = new Question('Enter your database host ["127.0.0.1"]:  ', '127.0.0.1');
-        $usernameQuestion = new Question('Enter your database username ["root"]:  ', 'root');
-        $passwordQuestion = new Question('Enter your database password [""]:  ', '');
-        $passwordQuestion->setHidden(true);
-        $databaseQuestion = new Question('Enter your database name ["laravel"]:  ', 'laravel');
-        $connected = false;
-        while (!$connected) {
-            $this->output->writeln('<error>Cannot connect to database.</error>');
-            $connection = $helper->ask($this->input, $this->output, $connectionQuestion);
-            $host = $helper->ask($this->input, $this->output, $hostQuestion);
-            $username = $helper->ask($this->input, $this->output, $usernameQuestion);
-            $password = $helper->ask($this->input, $this->output, $passwordQuestion);
-            $database = $helper->ask($this->input, $this->output, $databaseQuestion);
-            $databaseConfig = [
-                "connection" => $connection,
-                "host" => $host,
-                "username" => $username,
-                "password" => $password,
-                "database" => $database
-            ];
-            $connected = $this->databaseConnectionValid($databaseConfig);
-        }
-
-        $this->output->writeln('<info>Database configured successfully.</info>');
-
-        return $databaseConfig;
     }
 
     protected function configureEnv($dbconfig)
@@ -229,34 +201,6 @@ class NewCommand extends Command
         $packagejsonContent["scripts"] = array_merge($packagejsonContent["scripts"], $twillScripts);
         $filesystem = new Filesystem;
         $filesystem->dumpFile($this->directory . "/package.json", json_encode($packagejsonContent, JSON_PRETTY_PRINT));
-    }
-
-    protected function databaseConnectionValid($dbconfig)
-    {
-        try {
-            $host = $dbconfig["host"];
-            $username = $dbconfig["username"];
-            $password = $dbconfig["password"];
-            $database = $dbconfig["database"];
-            $connection = $dbconfig["connection"];
-            switch ($connection) {
-              case 'mysql':
-                $link = @mysqli_connect($host, $username, $password, $database);
-                break;
-              case 'pgsql':
-                $link = @pg_connect("host={$host} port=5432 dbname={$database} user={$username} password={$password}");
-                break;
-              default:
-                $link = false;
-                break;
-            }
-            if (!$link) {
-                return false;
-            }
-            return true;
-        } catch (Exception $e) {
-            return false;
-        }
     }
     
     /**
