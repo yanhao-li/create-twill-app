@@ -7,7 +7,7 @@ Create [Twill](https://twill.io/) application using one command.
 Make sure to place composer's system-wide vendor bin directory in your $PATH
 
 ```sh
-composer global require yanhaoli/create-twill-app
+composer global require yanhaoli/create-twill-app:"1.0.*"
 create-twill-app new blog
 ```
 
