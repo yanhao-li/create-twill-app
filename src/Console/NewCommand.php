@@ -79,6 +79,7 @@ class NewCommand extends Command
         $databaseConfig = $this->configureDatabase();
         $this->configureEnv($databaseConfig);
         passthru('cd '. $this->directory . ' && php artisan migrate');
+        passthru('cd '. $this->directory . ' && php artisan twill:superadmin');
         $output->writeln('<comment>Success! Twill is ready at ' . $this->directory . '</comment>');
         $output->writeln('<comment>You could get start by typing: </comment>');
         $this->io->newline();
