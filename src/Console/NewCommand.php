@@ -76,6 +76,8 @@ class NewCommand extends Command
             $output->write($line);
         });
 
+        passthru('cd '. $this->directory . ' && npm ci');
+
         $databaseConfig = $this->configureDatabase();
         $this->configureEnv($databaseConfig);
         passthru('cd '. $this->directory . ' && php artisan migrate');
@@ -159,22 +161,6 @@ class NewCommand extends Command
 
         $filesystem = new Filesystem;
         $filesystem->dumpFile($this->directory . "/.env", $newEnvfile);
-    }
-
-    protected function configureNpm()
-    {
-        //Add twill's npm scripts
-        $finder = new Finder();
-        $packagejson = iterator_to_array($finder->files()->ignoreDotFiles(false)->in($this->directory)->name("package.json"));
-        $packagejsonContent = json_decode(reset($packagejson)->getContents(), true);
-        $twillScripts = [
-            "twill-build" => "rm -f public/hot && npm run twill-copy-blocks && cd vendor/area17/twill && npm ci && npm run prod && cp -R public/* \${INIT_CWD}/public",
-            "twill-copy-blocks" => "npm run twill-clean-blocks && mkdir -p resources/assets/js/blocks/ && cp -R resources/assets/js/blocks/ vendor/area17/twill/frontend/js/components/blocks/customs/",
-            "twill-clean-blocks" => "rm -rf vendor/area17/twill/frontend/js/components/blocks/customs"
-        ];
-        $packagejsonContent["scripts"] = array_merge($packagejsonContent["scripts"], $twillScripts);
-        $filesystem = new Filesystem;
-        $filesystem->dumpFile($this->directory . "/package.json", json_encode($packagejsonContent, JSON_PRETTY_PRINT));
     }
     
     /**
