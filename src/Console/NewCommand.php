@@ -67,7 +67,7 @@ class NewCommand extends Command
             $composer.' run-script post-autoload-dump',
         ];
 
-        $process = new Process(implode(' && ', $commands), $this->directory, null, null, null);
+        $process = Process::fromShellCommandline(implode(' && ', $commands), $this->directory, null, null, null);
 
         if ('\\' !== DIRECTORY_SEPARATOR && file_exists('/dev/tty') && is_readable('/dev/tty')) {
             $process->setTty(true);
@@ -89,6 +89,8 @@ class NewCommand extends Command
         $output->writeln('<info>  php artisan serve</info>');
         $this->io->newline();
         $output->writeln('<comment>🔮 Welcome to Twill! 🔮</comment>');
+
+        return 0;
     }
 
     /**
