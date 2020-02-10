@@ -184,7 +184,7 @@ class NewCommand extends Command
      */
     protected function downloadZip($zipFile)
     {
-        $response = (new Client)->get('https://github.com/yanhao-li/twill-app/archive/0.0.3.zip');
+        $response = (new Client)->get('https://github.com/yanhao-li/twill-app/archive/0.0.4.zip');
         file_put_contents($zipFile, $response->getBody());
         return $this;
     }
