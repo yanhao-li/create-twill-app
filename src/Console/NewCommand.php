@@ -23,6 +23,8 @@ class NewCommand extends Command
 
     private $input, $output, $io, $directory, $database;
 
+    const TWILL_APP_PATH = 'https://github.com/yanhao-li/twill-app/archive/0.0.6.zip';
+
     /**
      * Configure the command options.
      *
@@ -184,7 +186,7 @@ class NewCommand extends Command
      */
     protected function downloadZip($zipFile)
     {
-        $response = (new Client)->get('https://github.com/yanhao-li/twill-app/archive/0.0.5.zip');
+        $response = (new Client)->get(self::TWILL_APP_PATH);
         file_put_contents($zipFile, $response->getBody());
         return $this;
     }
